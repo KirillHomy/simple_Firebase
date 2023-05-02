@@ -10,6 +10,9 @@ import Firebase
 
 class LoginViewController: UIViewController {
 
+    // MARK: - Private variables
+    private var ref: DatabaseReference!
+
     // MARK: - Private IBOutlet
     @IBOutlet private weak var warnLabel: UILabel!
     @IBOutlet private weak var emailTextField: UITextField!
@@ -43,8 +46,13 @@ class LoginViewController: UIViewController {
 private extension LoginViewController {
 
     func setupUI() {
+        setupReference()
         setupNotificationCenter()
         setupAddStateDidChangeListener()
+    }
+
+    func setupReference() {
+        ref = Database.database().reference(withPath: "users")
     }
 
     func setupNotificationCenter() {
@@ -98,13 +106,12 @@ private extension LoginViewController {
             return }
 
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] user, error in
-            guard let sSelf = self else { return }
+            guard let sSelf = self,
+            error == nil,
+            user != nil else { return }
 
-            if error == nil {
-                if user != nil {
-                    sSelf.performSegue(withIdentifier: "tasksSegue", sender: nil)
-                }
-            }
+            let userRef = sSelf.ref.child((user?.user.uid)!)
+            userRef.setValue(["email": user?.user.email])
         }
     }
 
