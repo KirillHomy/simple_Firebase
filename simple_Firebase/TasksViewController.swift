@@ -13,7 +13,7 @@ class TasksViewController: UIViewController {
     // MARK: - Private variables
     private var user: User!
     private var ref: DatabaseReference!
-    private var tasrs = Array<Task>()
+    private var tasks = Array<Task>()
 
     // MARK: - Private IBOutlet
     @IBOutlet private weak var tableView: UITableView!
@@ -23,6 +23,27 @@ class TasksViewController: UIViewController {
         super.viewDidLoad()
 
         setupUI()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear (animated)
+
+        ref.observe(.value, with: { [weak self] (snapshot) in
+            var tasks = Array<Task> ()
+            for item in snapshot .children {
+                let task = Task (snapshot: item as! DataSnapshot)
+                tasks.append (task)
+            }
+            self?.tasks = tasks
+            self?.tableView.reloadData()
+        })
+
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+
+        ref.removeAllObservers()
     }
 
     // MARK: - Private IBAction
@@ -71,7 +92,7 @@ private extension TasksViewController {
             let taskRef = sSelf.ref.child(task.title.lowercased())
             taskRef.setValue(task.convertToDictionarv())
         }
-        let cancel = UIAlertAction (title: "Cancel", style: .cancel, handler: nil)
+        let cancel = UIAlertAction (title: "Cancel", style: .default, handler: nil)
 
         alertController.addAction(save)
         alertController.addAction (cancel)
@@ -84,13 +105,43 @@ private extension TasksViewController {
 extension TasksViewController: UITableViewDelegate, UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 1
+        return tasks.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        let task = tasks[indexPath.row]
+
+        cell.textLabel?.text = tasks[indexPath.row].title
+        toggleCompletion(cell, isCompleted: task.completed)
 
         return cell
+    }
+
+    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        return true
+    }
+
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt
+                   indexPath: IndexPath) {
+        if editingStyle == .delete {
+            let task = tasks[indexPath.row]
+            task.ref?.removeValue()
+        }
+    }
+
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        guard let cell = tableView.cellForRow(at: indexPath) else { return }
+
+        let task = tasks[indexPath.row]
+        let isCompleted = !task.completed
+
+        toggleCompletion(cell, isCompleted: isCompleted)
+        task.ref?.updateChildValues(["completed" : isCompleted])
+    }
+
+    func toggleCompletion(_ cell: UITableViewCell, isCompleted: Bool) {
+        cell.accessoryType = isCompleted ? .checkmark : .none
     }
 
 }
