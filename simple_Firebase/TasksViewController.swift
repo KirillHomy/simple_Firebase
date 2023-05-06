@@ -30,9 +30,9 @@ class TasksViewController: UIViewController {
 
         ref.observe(.value, with: { [weak self] (snapshot) in
             var tasks = Array<Task> ()
-            for item in snapshot .children {
-                let task = Task (snapshot: item as! DataSnapshot)
-                tasks.append (task)
+            for item in snapshot.children {
+                let task = Task(snapshot: item as! DataSnapshot)
+                tasks.append(task)
             }
             self?.tasks = tasks
             self?.tableView.reloadData()
@@ -67,7 +67,8 @@ private extension TasksViewController {
         guard let currentUser = Auth.auth().currentUser else { return }
 
         user = User(user: currentUser)
-        ref = Database.database().reference(withPath: "users").child(String(user.uid)).child("tasks")
+        let database = Database.database(url: "https://simplefirebase-447b3-default-rtdb.europe-west1.firebasedatabase.app/")
+        ref = database.reference(withPath: "users").child(String(user.uid)).child("tasks")
     }
 
     func setupSignOutAction() {
